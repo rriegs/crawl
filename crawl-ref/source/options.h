@@ -316,6 +316,13 @@ public:
     bool        travel_key_stop;   // Travel stops on keypress.
 
     option_value auto_sacrifice;
+    option_value auto_butcher;
+
+    // NB: Not actually options, but used to remember what autoexplore
+    // is doing.  Implemented this way to mirror how it worked before
+    // auto_sacrifice and sacrifice_before_explore were merged. --RR
+    bool auto_sacrifice_once;
+    bool auto_butcher_once;
 
     vector<sound_mapping> sound_mappings;
     vector<colour_mapping> menu_colour_mappings;

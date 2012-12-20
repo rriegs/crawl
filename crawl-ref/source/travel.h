@@ -71,6 +71,9 @@ void find_travel_pos(const coord_def& youpos, int *move_x, int *move_y,
 
 bool is_stair_exclusion(const coord_def &p);
 
+bool autosacrifice_maybe_prompt(bool butcher_to_follow = false);
+bool autobutcher_maybe_prompt(bool sacrifice_to_follow = false);
+
 /* ***********************************************************************
  * Initiates explore - the character runs around the level to map it. Note
  * that the caller has to ensure that the level is mappable before calling
@@ -198,6 +201,9 @@ enum explore_stop_type
 
     // Explored into view of an item which can be sacrificied
     ES_GREEDY_SACRIFICEABLE      = 0x10000,
+
+    // Explored into view of an item which can be butchered
+    ES_GREEDY_BUTCHERABLE        = 0x20000,
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -261,6 +267,7 @@ private:
 
     bool can_autopickup;
     bool sacrifice;
+    bool butcher;
     int es_flags;
     const LevelStashes *current_level;
     vector< named_thing<item_def> > items;
@@ -577,6 +584,9 @@ protected:
 
     // Does god wants sacrifices?
     bool sacrifice;
+
+    // Are we interested in chunks?
+    bool butcher;
 
     // Targets for explore and greedy explore.
     coord_def unexplored_place, greedy_place;

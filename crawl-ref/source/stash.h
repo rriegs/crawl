@@ -44,12 +44,22 @@ public:
     // autopickup.
     bool pickup_eligible() const;
 
-    // Returns true if this Stash contains items that can be sacrificied
-    bool sacrificeable() const;
-
     // Returns true if this Stash contain items not handled by autopickup and
     // auto_sacrifce
     bool needs_stop() const;
+
+    // Returns true if this Stash contains items that can be sacrificied.
+    bool sacrificeable() const;
+
+    // Returns true if this Stash contains items that can be butchered.
+    bool butcherable() const;
+
+    // Returns true if this Stash contains items that are butcherable and can be
+    // eaten now.
+    bool butcherable_edible_now() const;
+
+    // Returns true if this Stash contains items that can be drained of blood.
+    bool drainable() const;
 
     // Returns true if this Stash is unverified (a visit by the character will
     // verify the stash).
@@ -244,7 +254,8 @@ public:
 
     // Returns true if the square at c contains potentially interesting
     // swag that merits a personal visit (for EXPLORE_GREEDY).
-    bool  needs_visit(const coord_def& c, bool autopickup, bool sacrifice) const;
+    bool  needs_visit(const coord_def& c, bool autopickup,
+                      bool sacrifice, bool butcher) const;
     bool  shop_needs_visit(const coord_def& c) const;
 
     // Returns true if the items at c are not fully known to the stash-tracker
@@ -252,8 +263,20 @@ public:
     bool  needs_stop(const coord_def &c) const;
 
     // Returns true if the items at c contains at least one that can be
-    // sacrificied
+    // sacrificied.
     bool sacrificeable(const coord_def &c) const;
+
+    // Returns true if the items at c contains at least one that can be
+    // butchered.
+    bool butcherable(const coord_def &c) const;
+
+    // Returns true if the items at c contains at least one that can be
+    // butchered and eaten now.
+    bool butcherable_edible_now(const coord_def &c) const;
+
+    // Returns true if the items at c contains at least one that can be
+    // drained of blood.
+    bool drainable(const coord_def &c) const;
 
     // Add stash at (x,y), or player's current location if no parameters are
     // supplied

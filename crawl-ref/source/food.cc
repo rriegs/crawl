@@ -272,9 +272,6 @@ static bool _corpse_butchery(int corpse_id, int butcher_tool,
 
     const bool rotten = food_is_rotten(mitm[corpse_id]);
 
-    if (!_should_butcher(corpse_id, bottle_blood))
-        return false;
-
     // Start work on the first corpse we butcher.
     if (first_corpse)
         mitm[corpse_id].plus2++;
@@ -416,15 +413,8 @@ static string _butcher_menu_title(const Menu *menu, const string &oldt)
 }
 #endif
 
-bool butchery(int which_corpse, bool bottle_blood)
+bool player_can_butcher(int *butcher_tool)
 {
-    if (you.visible_igrd(you.pos()) == NON_ITEM)
-    {
-        if (!_have_corpses_in_pack(false, bottle_blood))
-            mpr("There isn't anything here!");
-        return false;
-    }
-
     // Vampires' fangs are optimised for biting, not for tearing flesh.
     // (Not that they really need to.) Other species with this mutation
     // might still benefit from it.
@@ -434,31 +424,122 @@ bool butchery(int which_corpse, bool bottle_blood)
     bool birdie_butcher   = (player_mutation_level(MUT_BEAK)
                              && player_mutation_level(MUT_TALONS));
 
-    bool barehand_butcher = (form_can_butcher_barehanded(you.form)
-                                 || you.has_claws())
-                             && !player_wearing_slot(EQ_GLOVES);
+    bool barehand_butcher = ((form_can_butcher_barehanded() || you.has_claws())
+                             && !player_wearing_slot(EQ_GLOVES));
 
-    bool gloved_butcher   = (you.has_claws() && player_wearing_slot(EQ_GLOVES)
+    bool gloved_butcher   = ((form_can_butcher_barehanded() || you.has_claws())
+                             && player_wearing_slot(EQ_GLOVES)
                              && !you.inv[you.equip[EQ_GLOVES]].cursed());
 
-    bool knife_butcher    = !barehand_butcher && !you.weapon() && form_can_wield();
+    bool knife_butcher    = (!barehand_butcher && !you.weapon()
+                             && form_can_wield());
 
     bool can_butcher      = (teeth_butcher || barehand_butcher
                              || birdie_butcher || knife_butcher
                              || you.weapon() && can_cut_meat(*you.weapon()));
 
-    // It makes more sense that you first find out if there's anything
-    // to butcher, *then* decide to actually butcher it.
-    // The old code did it the other way.
-    if (!can_butcher && you.berserk())
+    bool wpn_switch     = false;
+    bool removed_gloves = false;
+
+    if (!can_butcher && you.weapon())
     {
-        // NB: Normally can't get here with bottle_blood == true because it's an
-        // ability and thus also blocked when berserking.  If bottle_blood was
-        // somehow true at the point, the following message would be wrong and
-        // (even worse) bottling success would depend on can_butcher == true.
+        if (!you.weapon()->cursed())
+            wpn_switch = true;
+        else if (gloved_butcher)
+            removed_gloves = true;
+    }
+
+    if (butcher_tool)
+    {
+        if (barehand_butcher || removed_gloves)
+            *butcher_tool = SLOT_CLAWS;
+        else if (birdie_butcher)
+            *butcher_tool = SLOT_BIRDIE;
+        else if (teeth_butcher)
+            *butcher_tool = SLOT_TEETH;
+        else if (knife_butcher || !can_butcher) // catch all failures
+            *butcher_tool = SLOT_BUTCHERING_KNIFE;
+        else
+            *butcher_tool = you.weapon()->link;
+    }
+
+    // All returns are after this point so butcher_tool is always set
+
+    if (you.berserk() && !can_butcher)
+        return false;
+
+    return can_butcher || removed_gloves || wpn_switch;
+}
+
+bool can_autobutcher()
+{
+    if (!(Options.explore_stop & ES_GREEDY_BUTCHERABLE))
+        return false;
+
+    // Vampires can always drain corpses
+    if (you.species == SP_VAMPIRE)
+        return true;
+
+    if (!player_can_butcher())
+        return false;
+
+    return (can_ingest(OBJ_FOOD, FOOD_CHUNK, true, false)
+            || you.has_spell(SPELL_SUBLIMATION_OF_BLOOD)
+            || you.has_spell(SPELL_SIMULACRUM));
+}
+
+// which_corpse == -2 means auto_butcher good corpses, -1 for no selection
+bool butchery(int which_corpse, bool bottle_blood)
+{
+    if (you.visible_igrd(you.pos()) == NON_ITEM)
+    {
+        if (!_have_corpses_in_pack(false, bottle_blood))
+            mpr("There isn't anything here!");
+        return false;
+    }
+
+    int butcher_tool;
+    bool can_butcher = player_can_butcher(&butcher_tool);
+
+    bool wpn_switch     = false;
+    bool removed_gloves = false;
+
+    // Recover need to change equipment based on butcher_tool
+    if (butcher_tool == SLOT_CLAWS && player_wearing_slot(EQ_GLOVES))
+        removed_gloves = true;
+    if (butcher_tool == SLOT_BUTCHERING_KNIFE && you.weapon())
+        wpn_switch = true; // even if cursed; wield_weapon will catch that
+    if (removed_gloves || wpn_switch)
+        can_butcher = false; // so can_butcher means can butcher right now
+
+    if (butcher_tool == SLOT_BUTCHERING_KNIFE && !form_can_wield())
+    {
+        mprf("You can't %s in your present form.",
+             bottle_blood ? "bottle blood" : "butcher");
+        return false;
+    }
+    if (you.berserk() && bottle_blood)
+    {
+        // NB: Normally can't get here with bottle_blood because it's an ability
+        // and thus also blocked when berserking.  bottle_blood via auto_butcher
+        // also can't get here because autoexplore is also blocked when berserk.
+        mpr("You are too berserk to bottle blood right now!");
+        return false;
+    }
+    if (you.berserk() && !can_butcher)
+    {
         mpr("You are too berserk to search for a butchering tool!");
         return false;
     }
+    if (wpn_switch && you.weapon() && you.weapon()->cursed())
+    {
+        mpr("Your cursed weapon is too dull to butcher anything.");
+        return false;
+    }
+
+    // At this point we know that the player is physically capable of butchery.
+    // We will now check if there's anything to butcher here, and *then* decide
+    // whether or not to butcher it.  The old code did it the other way around.
 
     bool wants_any = you.has_spell(SPELL_SIMULACRUM)
                   || you.has_spell(SPELL_SUBLIMATION_OF_BLOOD);
@@ -511,42 +592,23 @@ bool butchery(int which_corpse, bool bottle_blood)
 
     int old_weapon      = you.equip[EQ_WEAPON];
     int old_gloves      = you.equip[EQ_GLOVES];
-
-    bool wpn_switch     = false;
-    bool removed_gloves = false;
-
-    if (!can_butcher)
-    {
-        if (you.weapon() && you.weapon()->cursed() && gloved_butcher)
-            removed_gloves = true;
-        else
-            wpn_switch = true;
-    }
-
-    int butcher_tool;
-
-    if (barehand_butcher || removed_gloves)
-        butcher_tool = SLOT_CLAWS;
-    else if (teeth_butcher)
-        butcher_tool = SLOT_TEETH;
-    else if (birdie_butcher)
-        butcher_tool = SLOT_BIRDIE;
-    else if (wpn_switch || knife_butcher)
-        butcher_tool = SLOT_BUTCHERING_KNIFE;
-    else
-        butcher_tool = you.weapon()->link;
+    bool auto_only      = (which_corpse == -2);
 
     // Butcher pre-chosen corpse, if found, or if there is only one corpse.
+    // Also catch CONFIRM_NEVER for the best corpse, but not for auto_only,
+    // which shouldn't un/re-equip for each corpse if there are several.
     bool success = false;
     if (prechosen && corpse_id == which_corpse
         || num_corpses == 1 && Options.confirm_butcher != CONFIRM_ALWAYS
-        || Options.confirm_butcher == CONFIRM_NEVER)
+        || Options.confirm_butcher == CONFIRM_NEVER && !auto_only)
     {
-        if (Options.confirm_butcher == CONFIRM_NEVER
-            && !_should_butcher(corpse_id, bottle_blood))
+        if (!_should_butcher(corpse_id, bottle_blood))
         {
-            mprf("There isn't anything suitable to %s here.",
-                 bottle_blood ? "bottle" : "butcher");
+            if (Options.confirm_butcher == CONFIRM_NEVER)
+            {
+                mprf("There isn't anything suitable to %s here.",
+                     bottle_blood ? "bottle" : "butcher");
+            }
             return false;
         }
 
@@ -579,18 +641,35 @@ bool butchery(int which_corpse, bool bottle_blood)
         {
             continue;
         }
-        meat.push_back(& (*si));
+
+        if (!auto_only)
+            meat.push_back(& (*si));
+        else if (si->is_greedy_butcherable())
+            meat.push_back(& (*si));
     }
 
-    corpse_id = -1;
-    vector<SelItem> selected =
-        select_items(meat, bottle_blood ? "Choose a corpse to bottle"
-                                        : "Choose a corpse to butcher",
-                     false, MT_ANY, _butcher_menu_title);
-    redraw_screen();
-    for (int i = 0, count = selected.size(); i < count; ++i)
+    int count = meat.size;
+    vector<SelItem> selected;
+    if (!auto_only)
     {
-        corpse_id = selected[i].item->index();
+        selected = select_items(meat,
+                                bottle_blood ? "Choose a corpse to bottle"
+                                             : "Choose a corpse to butcher",
+                                false, MT_ANY, _butcher_menu_title);
+        count = selected.size();
+        redraw_screen();
+    }
+
+    for (int i = 0; i < count; ++i)
+    {
+        if (auto_only)
+            corpse_id = meat[i]->index();
+        else
+            corpse_id = selected[i].item->index();
+
+        if (!_should_butcher(corpse_id, bottle_blood))
+            continue;
+
         if (!did_weap_swap)
         {
             if (_prepare_butchery(can_butcher, removed_gloves, wpn_switch))
@@ -598,6 +677,7 @@ bool butchery(int which_corpse, bool bottle_blood)
             else
                 return false;
         }
+
         if (_corpse_butchery(corpse_id, butcher_tool, first_corpse,
                              bottle_blood))
         {
@@ -605,7 +685,6 @@ bool butchery(int which_corpse, bool bottle_blood)
             first_corpse = false;
         }
     }
-
 #else
     int keyin;
     bool repeat_prompt = false;
@@ -620,12 +699,12 @@ bool butchery(int which_corpse, bool bottle_blood)
             continue;
         }
 
-        if (butcher_all)
-            corpse_id = si->index();
-        else
-        {
-            corpse_id = -1;
+        corpse_id = -1;
 
+        if (butcher_all || auto_only && si->is_greedy_butcherable())
+            corpse_id = si->index();
+        else if (!auto_only) // auto_only => !is_greedy_butcherable
+        {
             string corpse_name = si->name(DESC_A);
 
             // We don't need to check for undead because
@@ -650,16 +729,6 @@ bool butchery(int which_corpse, bool bottle_blood)
                 case 'c':
                 case 'd':
                 case 'a':
-                    if (!did_weap_swap)
-                    {
-                        if (_prepare_butchery(can_butcher, removed_gloves,
-                                              wpn_switch))
-                        {
-                            did_weap_swap = true;
-                        }
-                        else
-                            return false;
-                    }
                     corpse_id = si->index();
 
                     if (keyin == 'a')
@@ -687,8 +756,16 @@ bool butchery(int which_corpse, bool bottle_blood)
             while (repeat_prompt);
         }
 
-        if (corpse_id != -1)
+        if (corpse_id != -1 && _should_butcher(corpse_id, bottle_blood))
         {
+            if (!did_weap_swap)
+            {
+                if (_prepare_butchery(can_butcher, removed_gloves, wpn_switch))
+                    did_weap_swap = true;
+                else
+                    return false;
+            }
+
             if (_corpse_butchery(corpse_id, butcher_tool, first_corpse,
                                  bottle_blood))
             {
@@ -698,10 +775,10 @@ bool butchery(int which_corpse, bool bottle_blood)
         }
     }
 #endif
-    if (!butcher_all && corpse_id == -1)
+    if (!auto_only && corpse_id == -1)
     {
-        mprf("There isn't anything %s to %s here.",
-             Options.confirm_butcher == CONFIRM_NEVER ? "suitable" : "else",
+        // Old code specially handled CONFIRM_NEVER, which can't get here
+        mprf("There isn't anything else to %s here.",
              bottle_blood ? "bottle" : "butcher");
     }
     _terminate_butchery(wpn_switch, removed_gloves, old_weapon, old_gloves);

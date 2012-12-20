@@ -1408,18 +1408,35 @@ static void _handle_run_delays(const delay_queue_item &delay)
                 return;
         }
 
-        if (Options.auto_sacrifice == OPT_YES
+        if ((Options.auto_sacrifice == OPT_YES
+             || Options.auto_sacrifice_once)
             && you.running == RMODE_EXPLORE_GREEDY)
         {
+            Options.auto_sacrifice_once = false;
+
             LevelStashes *lev = StashTrack.find_current_level();
             if (lev && lev->sacrificeable(you.pos()))
             {
                 const interrupt_block block_interrupts;
-                pray();
+                autosacrifice_maybe_prompt();
                 return;
             }
         }
 
+        if ((Options.auto_butcher == OPT_YES
+             || Options.auto_butcher_once)
+            && you.running == RMODE_EXPLORE_GREEDY)
+        {
+            Options.auto_butcher_once = false;
+
+            LevelStashes *lev = StashTrack.find_current_level();
+            if (lev && lev->butcherable(you.pos()))
+            {
+                const interrupt_block block_interrupts;
+                autobutcher_maybe_prompt();
+                return;
+            }
+        }
 
         switch (delay.type)
         {

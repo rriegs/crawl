@@ -575,8 +575,17 @@ public:
     // Returns true if this item should not normally be enchanted.
     bool is_mundane() const;
 
-    // Returns true if this item causes autoexplore to visit it.
+    // Returns true if autoexplore should visit this item to sacrifice it.
     bool is_greedy_sacrificeable() const;
+
+    // Returns true if autoexplore should visit this item to butcher it.
+    bool is_greedy_butcherable() const;
+
+    // Returns true if is_greedy_butcherable and we can eat it now.
+    bool is_greedy_butcherable_edible_now() const;
+
+    // Returns true if vampires might want to visit this item to feed on it.
+    bool is_greedy_drainable() const;
 
 private:
     string name_aux(description_level_type desc, bool terse, bool ident,

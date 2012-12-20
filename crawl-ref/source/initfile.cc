@@ -894,7 +894,8 @@ void game_options::reset_options()
                               | ES_SHOP | ES_ALTAR | ES_RUNED_DOOR
                               | ES_GREEDY_PICKUP_SMART
                               | ES_GREEDY_VISITED_ITEM_STACK
-                              | ES_GREEDY_SACRIFICEABLE);
+                              | ES_GREEDY_SACRIFICEABLE
+                              | ES_GREEDY_BUTCHERABLE);
 
     // The prompt conditions will be combined into explore_stop after
     // reading options.
@@ -909,6 +910,9 @@ void game_options::reset_options()
     explore_improved       = false;
     travel_key_stop        = true;
     auto_sacrifice         = OPT_NO;
+    auto_butcher           = OPT_NO;
+    auto_sacrifice_once    = false;
+    auto_butcher_once      = false;
 
     target_unshifted_dirs  = false;
     darken_beyond_range    = true;
@@ -1866,6 +1870,10 @@ int game_options::read_explore_stop_conditions(const string &field) const
                  || c == "greedy_sacrificiable" || c == "greedy_sacrificiables")
         {
             conditions |= ES_GREEDY_SACRIFICEABLE;
+        }
+        else if (c == "greedy_butcherable" || c == "greedy_butcherables")
+        {
+            conditions |= ES_GREEDY_BUTCHERABLE;
         }
     }
     return conditions;
@@ -3237,6 +3245,15 @@ void game_options::read_option_line(const string &str, bool runscript)
             auto_sacrifice = OPT_BEFORE_EXPLORE;
         else
             auto_sacrifice = _read_bool(field, false) ? OPT_YES : OPT_NO;
+    }
+    else if (key == "auto_butcher")
+    {
+        if (field == "prompt" || field == "ask")
+            auto_butcher = OPT_PROMPT;
+        else if (field == "before_explore")
+            auto_butcher = OPT_BEFORE_EXPLORE;
+        else
+            auto_butcher = _read_bool(field, false) ? OPT_YES : OPT_NO;
     }
     else if (key == "sound")
     {

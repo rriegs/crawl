@@ -220,6 +220,20 @@ bool Stash::pickup_eligible() const
     return false;
 }
 
+bool Stash::needs_stop() const
+{
+    for (int i = 0, size = items.size(); i < size; ++i)
+        if (!items[i].is_greedy_sacrificeable()
+            && !items[i].is_greedy_butcherable()
+            && !items[i].is_greedy_drainable()
+            && !item_needs_autopickup(items[i]))
+        {
+            return true;
+        }
+
+    return false;
+}
+
 bool Stash::sacrificeable() const
 {
     for (int i = 0, size = items.size(); i < size; ++i)
@@ -229,14 +243,29 @@ bool Stash::sacrificeable() const
     return false;
 }
 
-bool Stash::needs_stop() const
+bool Stash::butcherable() const
 {
     for (int i = 0, size = items.size(); i < size; ++i)
-        if (!items[i].is_greedy_sacrificeable()
-            && !item_needs_autopickup(items[i]))
-        {
+        if (items[i].is_greedy_butcherable())
             return true;
-        }
+
+    return false;
+}
+
+bool Stash::butcherable_edible_now() const
+{
+    for (int i = 0, size = items.size(); i < size; ++i)
+        if (items[i].is_greedy_butcherable_edible_now())
+            return true;
+
+    return false;
+}
+
+bool Stash::drainable() const
+{
+    for (int i = 0, size = items.size(); i < size; ++i)
+        if (items[i].is_greedy_drainable())
+            return true;
 
     return false;
 }
@@ -1148,11 +1177,13 @@ bool LevelStashes::shop_needs_visit(const coord_def& c) const
 }
 
 bool LevelStashes::needs_visit(const coord_def& c, bool autopickup,
-                               bool sacrifice) const
+                               bool sacrifice, bool butcher) const
 {
     const Stash *s = find_stash(c);
     if (s && (s->unverified()
               || sacrifice && s->sacrificeable()
+              || butcher && s->butcherable()
+              || butcher && s->drainable()
               || autopickup && s->pickup_eligible()))
     {
         return true;
@@ -1163,13 +1194,32 @@ bool LevelStashes::needs_visit(const coord_def& c, bool autopickup,
 bool LevelStashes::needs_stop(const coord_def &c) const
 {
     const Stash *s = find_stash(c);
-    return (s && s->unverified() && s->needs_stop());
+    // return (s && s->unverified() && s->needs_stop());
+    return (s && s->unverified());
 }
 
 bool LevelStashes::sacrificeable(const coord_def &c) const
 {
     const Stash *s = find_stash(c);
     return (s && s->sacrificeable());
+}
+
+bool LevelStashes::butcherable(const coord_def &c) const
+{
+    const Stash *s = find_stash(c);
+    return (s && s->butcherable());
+}
+
+bool LevelStashes::butcherable_edible_now(const coord_def &c) const
+{
+    const Stash *s = find_stash(c);
+    return (s && s->butcherable_edible_now());
+}
+
+bool LevelStashes::drainable(const coord_def &c) const
+{
+    const Stash *s = find_stash(c);
+    return (s && s->drainable());
 }
 
 ShopInfo &LevelStashes::get_shop(const coord_def& c)
