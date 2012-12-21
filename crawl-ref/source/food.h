@@ -13,6 +13,7 @@
 #define HUNGER_MAXIMUM     12000
 
 int count_corpses_in_pack(bool blood_only = false);
+int player_num_edible_chunks(bool check_hunger = true);
 bool player_can_butcher(int *butcher_tool = NULL);
 bool can_autobutcher();
 bool butchery(int which_corpse = -1, bool bottle_blood = false);
@@ -67,5 +68,6 @@ void handle_starvation();
 string hunger_cost_string(const int hunger);
 void end_nausea();
 
+int player_chunks_needed();
 maybe_bool drop_spoiled_chunks(int weight_needed, bool whole_slot = false);
 #endif

@@ -371,6 +371,24 @@ int count_corpses_in_pack(bool blood_only)
     return num;
 }
 
+int player_num_edible_chunks(bool check_hunger)
+{
+    int num_chunks = 0;
+
+    for (int i = 0; i < ENDOFPACK; ++i)
+    {
+        item_def &obj(you.inv[i]);
+        if (obj.defined()
+            && obj.base_type == OBJ_FOOD && obj.sub_type == FOOD_CHUNK
+            && can_ingest(obj, true, check_hunger))
+        {
+            ++num_chunks;
+        }
+    }
+
+    return num_chunks;
+}
+
 static bool _have_corpses_in_pack(bool remind, bool bottle_blood = false)
 {
     const int num = count_corpses_in_pack(bottle_blood);
@@ -887,31 +905,15 @@ static bool _eat_check(bool check_hunger = true, bool silent = false)
     return true;
 }
 
-static bool _has_edible_chunks()
-{
-    for (int i = 0; i < ENDOFPACK; ++i)
-    {
-        item_def &obj(you.inv[i]);
-        if (!obj.defined()
-            || obj.base_type != OBJ_FOOD || obj.sub_type != FOOD_CHUNK
-            || !can_ingest(obj, true, true))
-        {
-            continue;
-        }
-
-        return true;
-    }
-
-    return false;
-}
-
 void end_nausea()
 {
     you.duration[DUR_NAUSEA] = 0;
 
+    int num_chunks = player_num_edible_chunks();
+
     const char *add = "";
     // spoilable food, need to interrupt before it can go bad
-    if (_has_edible_chunks())
+    if (num_chunks > 0)
         add = ", and you want to eat";
     else if (you.hunger_state <= HS_HUNGRY)
         add = ", and you need some food";
@@ -919,7 +921,7 @@ void end_nausea()
         add = ", so let's find someone to eat";
     mprf(MSGCH_DURATION, "Your stomach is not as upset anymore%s.", add);
 
-    if (!_has_edible_chunks() && _eat_check(true, true))
+    if (num_chunks == 0 && _eat_check(true, true))
         _have_corpses_in_pack(false);
 }
 
@@ -2896,7 +2898,7 @@ string hunger_cost_string(const int hunger)
 
 // Simulacrum and Sublimation of Blood are handled elsewhere, as they ignore
 // chunk edibility.
-static int _chunks_needed()
+int player_chunks_needed()
 {
     if (you.form == TRAN_LICH)
         return 1; // possibly low success rate, so don't drop everything
@@ -3004,7 +3006,7 @@ maybe_bool drop_spoiled_chunks(int weight_needed, bool whole_slot)
     if (Options.auto_drop_chunks == ADC_ROTTEN)
         return result;
 
-    nchunks -= _chunks_needed();
+    nchunks -= player_chunks_needed();
 
     sort(chunk_slots.begin(), chunk_slots.end(), _compare_second);
 
