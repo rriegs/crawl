@@ -382,7 +382,7 @@ int player_num_edible_chunks(bool check_hunger)
             && obj.base_type == OBJ_FOOD && obj.sub_type == FOOD_CHUNK
             && can_ingest(obj, true, check_hunger))
         {
-            ++num_chunks;
+            num_chunks += obj.quantity;
         }
     }
 
