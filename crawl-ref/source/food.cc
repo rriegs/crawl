@@ -2909,19 +2909,28 @@ int player_num_chunks_needed()
     int appetite = player_hunger_rate(false);
     hunger += appetite * FRESHEST_CORPSE * 2;
 
-    bool channeling = you.religion == GOD_SIF_MUNA;
+    // Channeling, healing, and berserking are massive food sinks
+    bool food_sink = you.religion == GOD_SIF_MUNA
+                  || you.religion == GOD_ELYVILON
+                  || you.religion == GOD_TROG
+                  || you.scan_artefacts(ARTP_BERSERK, false)
+                  || you.scan_artefacts(ARTP_ANGRY, false);
+
+    // Also count staves of channeling and amulets of rage in inventory
     for (int i = 0; i < ENDOFPACK; i++)
     {
-        if (you.inv[i].defined()
-            && you.inv[i].base_type == OBJ_STAVES
-            && you.inv[i].sub_type == STAFF_CHANNELING)
+        const item_def& item = you.inv[i];
+        if (!item.defined())
+            continue;
+        if ((item.base_type == OBJ_STAVES && item.sub_type == STAFF_CHANNELING)
+            || (item.base_type == OBJ_JEWELLERY && item.sub_type == AMU_RAGE))
         {
-            channeling = true;
+            food_sink = true;
         }
     }
 
-    if (channeling)
-        hunger += 2000; // a massive food sink!
+    if (food_sink)
+        hunger += 2000; // three chunks worth
 
     int biggest_spell = 0;
     for (int i = 0; i < MAX_KNOWN_SPELLS; i++)
