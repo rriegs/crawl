@@ -3317,6 +3317,7 @@ bool item_def::is_greedy_butcherable() const
 
     const bool rotten = food_is_rotten(*this);
 
+    // NB: Can't use can_ingest(*this) because *this is a corpse, not a chunk
     const bool edible = can_ingest(OBJ_FOOD, FOOD_CHUNK, true, false, rotten);
 
     const bool wants_any = (you.has_spell(SPELL_SIMULACRUM)
@@ -3335,6 +3336,7 @@ bool item_def::is_greedy_butcherable_edible_now() const
     const bool rotten = food_is_rotten(*this);
     const bool contam = is_contaminated(*this);
 
+    // NB: Can't use can_ingest(*this) because *this is a corpse, not a chunk
     const bool edible = can_ingest(OBJ_FOOD, FOOD_CHUNK, true, true, rotten);
 
     const bool easy_contam = Options.easy_eat_contaminated

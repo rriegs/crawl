@@ -2608,13 +2608,6 @@ bool can_ingest(int what_isit, int kindof_thing, bool suppress_msg,
     {
     case OBJ_FOOD:
     {
-        if (you.species == SP_VAMPIRE)
-        {
-            if (!suppress_msg)
-                mpr("Blech - you need blood!");
-            return false;
-        }
-
         const int vorous = _player_likes_food_type(kindof_thing);
         if (vorous > 0) // Herbivorous food.
         {
@@ -2654,20 +2647,6 @@ bool can_ingest(int what_isit, int kindof_thing, bool suppress_msg,
         return true;
     }
 
-    case OBJ_CORPSES:
-        if (you.species == SP_VAMPIRE)
-        {
-            if (kindof_thing == CORPSE_BODY)
-                return true;
-            else
-            {
-                if (!suppress_msg)
-                    mpr("Blech - you need blood!");
-                return false;
-            }
-        }
-        return false;
-
     case OBJ_POTIONS: // called by lua
         if (get_ident_type(OBJ_POTIONS, kindof_thing) != ID_KNOWN_TYPE)
             return true;
@@ -2684,13 +2663,7 @@ bool can_ingest(int what_isit, int kindof_thing, bool suppress_msg,
                 }
                 return true;
              case POT_PORRIDGE:
-                if (you.species == SP_VAMPIRE)
-                {
-                    if (!suppress_msg)
-                        mpr("Blech - you need blood!");
-                    return false;
-                }
-                else if (ur_carnivorous)
+                if (ur_carnivorous)
                 {
                     if (!suppress_msg)
                         mpr("Sorry, you're a carnivore.");
