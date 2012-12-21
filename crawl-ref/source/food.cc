@@ -2898,7 +2898,7 @@ string hunger_cost_string(const int hunger)
 
 // Simulacrum and Sublimation of Blood are handled elsewhere, as they ignore
 // chunk edibility.
-int player_chunks_needed()
+int player_num_chunks_needed()
 {
     if (you.form == TRAN_LICH)
         return 1; // possibly low success rate, so don't drop everything
@@ -3006,7 +3006,7 @@ maybe_bool drop_spoiled_chunks(int weight_needed, bool whole_slot)
     if (Options.auto_drop_chunks == ADC_ROTTEN)
         return result;
 
-    nchunks -= player_chunks_needed();
+    nchunks -= player_num_chunks_needed();
 
     sort(chunk_slots.begin(), chunk_slots.end(), _compare_second);
 

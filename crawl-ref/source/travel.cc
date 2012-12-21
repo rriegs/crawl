@@ -3001,10 +3001,15 @@ void start_explore(bool grab_items)
         if (lev->drainable(you.pos()))
             mark_items_non_visit_drain_at(you.pos());
 
+        const bool need_chunks =
+            player_num_edible_chunks(false) < player_num_chunks_needed();
+
+        const bool auto_edible =
+            Options.auto_eat_chunks && lev->butcherable_edible_now(you.pos());
+
         if (Options.auto_butcher == OPT_PROMPT
-            || (lev->butcherable_edible_now(you.pos())
-                && Options.auto_sacrifice != OPT_PROMPT
-                && Options.auto_eat_chunks))
+            || (Options.auto_sacrifice != OPT_PROMPT
+                && (need_chunks || auto_edible)))
         {
             if (lev->butcherable(you.pos())
                 && autobutcher_maybe_prompt(true))

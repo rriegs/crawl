@@ -68,6 +68,6 @@ void handle_starvation();
 string hunger_cost_string(const int hunger);
 void end_nausea();
 
-int player_chunks_needed();
+int player_num_chunks_needed();
 maybe_bool drop_spoiled_chunks(int weight_needed, bool whole_slot = false);
 #endif
