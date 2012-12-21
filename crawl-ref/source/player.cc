@@ -1331,7 +1331,7 @@ int player_hunger_rate(bool temp)
     if (!you.suppressed())
     {
         // rings
-        if (you.hp < you.hp_max
+        if (temp && you.hp < you.hp_max
             && player_mutation_level(MUT_SLOW_HEALING) < 3)
         {
             hunger += 3 * you.wearing(EQ_RINGS, RING_REGENERATION);
@@ -1340,7 +1340,7 @@ int player_hunger_rate(bool temp)
         hunger += 4 * you.wearing(EQ_RINGS, RING_HUNGER);
 
         // troll leather armour
-        if (you.species != SP_TROLL && you.hp < you.hp_max
+        if (temp && you.species != SP_TROLL && you.hp < you.hp_max
             && player_mutation_level(MUT_SLOW_HEALING) < 3)
         {
             if (you.wearing(EQ_BODY_ARMOUR, ARM_TROLL_LEATHER_ARMOUR)
