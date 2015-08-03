@@ -688,6 +688,13 @@ Converts all nearby poison into liquid flame, burning poisoned creatures from
 within. It also turns clouds of poison and mephitic gases into flame. The
 caster is not affected directly.
 %%%%
+Infestation spell
+
+Infuses creatures with necromantic energy for a duration depending on power,
+causing death scarabs to grow and burst forth from them upon death. The number
+of scarabs increases with the strength of the infested target, and particularly
+weak monsters may have insufficient energy for any scarabs to grow.
+%%%%
 Infusion spell
 
 Infuses the caster's melee attacks with magic, drawing from their reserves of
