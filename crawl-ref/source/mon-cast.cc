@@ -1255,6 +1255,7 @@ bool setup_mons_cast(monster* mons, bolt &pbolt, spell_type spell_cast,
     case SPELL_AURA_OF_BRILLIANCE:
     case SPELL_GREATER_SERVANT_MAKHLEB:
     case SPELL_BIND_SOULS:
+    case SPELL_TAUNT:
         pbolt.range = 0;
         pbolt.glyph = 0;
         return true;
@@ -1704,6 +1705,54 @@ static bool _mons_call_of_chaos(const monster& mon, bool check_only = false)
     if (affected == 0)
         return false;
 
+    return true;
+}
+
+/**
+ * Use the 'taunt' ability, causing all enemies in LOS to target the user.
+ *
+ * @param check_only    Whether to perform a 'dry run', only checking whether
+ *                      any monsters are potentially affected.
+ * @return              Whether any monsters are (or would be) affected.
+ */
+static bool _mons_taunt(monster &taunter, bool check_only = false)
+{
+    std::vector<const monster*> affected;
+    for (monster_near_iterator mi(&taunter, LOS_NO_TRANS); mi; ++mi)
+    {
+        monster *mons = *mi;
+        if (mons_aligned(&taunter, mons)
+            || mons_is_firewood(mons)
+            || !mons->can_see(taunter)
+            || mons->get_foe() == &taunter)
+        {
+            continue;
+        }
+
+        if (check_only)
+            return true;
+
+        // XXX: only a chance of success?
+        mons->foe = taunter.mindex();
+        mons->add_ench(ENCH_TAUNTED);
+        affected.push_back(mons);
+    }
+
+    if (affected.empty())
+        return false;
+
+    string msg;
+    if (affected.size() == 1)
+    {
+        msg = make_stringf(" shouts to draw the attention of %s!",
+                           affected[0]->name(DESC_THE).c_str());
+    }
+    else
+    {
+        msg = make_stringf(" shouts to draw the attention of %s enemies!",
+                           taunter.pronoun(PRONOUN_POSSESSIVE).c_str());
+    }
+    simple_monster_message(&taunter, msg.c_str());
     return true;
 }
 
@@ -6368,6 +6417,9 @@ void mons_cast(monster* mons, bolt pbolt, spell_type spell_cast,
         return;
     }
 
+    case SPELL_TAUNT:
+        _mons_taunt(*mons);
+
     }
 
     // If a monster just came into view and immediately cast a spell,
@@ -7997,6 +8049,9 @@ static bool _ms_waste_of_time(monster* mon, mon_spell_slot slot)
                 return false;
             }
         return true;
+
+    case SPELL_TAUNT:
+        return !_mons_taunt(*mon, true);
 
 #if TAG_MAJOR_VERSION == 34
     case SPELL_SUMMON_TWISTER:

@@ -1580,8 +1580,7 @@ static brand_type _hepliaklqana_weapon_brand(monster_type mc, int HD)
                                SPWPN_ANTIMAGIC;
         case MONS_ANCESTOR_KNIGHT:
             return !hepliaklqana_specialization() ?   SPWPN_NORMAL :
-                   HD < 18 ?                          SPWPN_FLAMING :
-                                                      SPWPN_SPEED;
+                                                      SPWPN_FLAMING;
         case MONS_ANCESTOR_BATTLEMAGE:
             return HD < 14 ?   SPWPN_NORMAL :
                                SPWPN_FREEZING;
@@ -1625,14 +1624,14 @@ static armour_type _hepliaklqana_shield_type(monster_type mc, int HD)
 {
     if (mc != MONS_ANCESTOR_KNIGHT)
         return NUM_ARMOURS;
-    if (HD < 14)
+    if (HD < 18)
         return ARM_SHIELD;
     return ARM_LARGE_SHIELD;
 }
 
 static special_armour_type _hepliaklqana_shield_ego(int HD)
 {
-    return HD < 14 ? SPARM_NORMAL : SPARM_REFLECTION;
+    return HD < 18 ? SPARM_NORMAL : SPARM_REFLECTION;
 }
 
 /**
