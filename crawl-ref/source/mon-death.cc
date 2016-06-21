@@ -1335,37 +1335,24 @@ static bool _explode_monster(monster* mons, killer_type killer,
     return true;
 }
 
-static void _infestation_create_scarabs(monster* mons)
+static void _infestation_create_scarab(monster* mons)
 {
-    int scarabs = 0;
-    const int num = min(3, div_rand_round(mons->get_experience_level(), 9));
+    if (monster *scarab = create_monster(mgen_data(MONS_DEATH_SCARAB,
+                                                   BEH_FRIENDLY, &you, 0,
+                                                   SPELL_INFESTATION,
+                                                   mons->pos(), MHITYOU,
+                                                   MG_AUTOFOE),
+                                         false))
+    {
+        scarab->add_ench(mon_enchant(ENCH_FAKE_ABJURATION, 6));
 
-    for (int i = 0; i < num; i++)
-    {
-        if (monster *scarab = create_monster(mgen_data(MONS_DEATH_SCARAB,
-                                                       BEH_FRIENDLY, &you, 0,
-                                                       SPELL_INFESTATION,
-                                                       mons->pos(), MHITYOU,
-                                                       MG_AUTOFOE),
-                                             false))
+        if (you.see_cell(mons->pos()) || you.can_see(*scarab))
         {
-            scarabs++;
-            scarab->add_ench(mon_enchant(ENCH_FAKE_ABJURATION, 5));
-        }
-    }
-    if (scarabs)
-    {
-        if (you.see_cell(mons->pos()))
-        {
-            mprf("%s burst%s from %s!", scarabs > 1 ? "Death scarabs"
-                                                    : "A death scarab",
-                                        scarabs > 1 ? "" : "s",
-                                        mons->name(DESC_THE).c_str());
+            mprf("%s bursts from %s!", scarab->name(DESC_A).c_str(),
+                                       mons->name(DESC_THE).c_str());
         }
         mons->flags |= MF_EXPLODE_KILL;
     }
-    else
-        simple_monster_message(mons, "'s infestation fades.");
 }
 
 static void _monster_die_cloud(const monster* mons, bool corpse, bool silent,
@@ -2533,7 +2520,7 @@ item_def* monster_die(monster* mons, killer_type killer,
     }
 
     if (mons->has_ench(ENCH_INFESTATION) && !was_banished && !mons_reset)
-        _infestation_create_scarabs(mons);
+        _infestation_create_scarab(mons);
 
     if (mons->mons_species() == MONS_BALLISTOMYCETE)
     {
