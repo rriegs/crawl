@@ -1348,7 +1348,7 @@ static void _infestation_create_scarab(monster* mons)
 
         if (you.see_cell(mons->pos()) || you.can_see(*scarab))
         {
-            mprf("%s bursts from %s!", scarab->name(DESC_A).c_str(),
+            mprf("%s bursts from %s!", scarab->name(DESC_A, true).c_str(),
                                        mons->name(DESC_THE).c_str());
         }
         mons->flags |= MF_EXPLODE_KILL;
